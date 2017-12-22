@@ -21,6 +21,7 @@ import com.amazonaws.services.kinesis.model.ExpiredIteratorException;
 import com.amazonaws.services.kinesis.model.GetRecordsResult;
 import com.amazonaws.services.kinesis.model.Record;
 import com.amazonaws.services.kinesis.model.Shard;
+
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.streaming.connectors.kinesis.model.StreamShardHandle;
 import org.apache.flink.streaming.connectors.kinesis.proxy.GetShardListResult;
@@ -115,6 +116,7 @@ public class FakeKinesisBehavioursFactory {
 				// assuming that the maxRecordsToGet is always large enough
 				return new GetRecordsResult()
 					.withRecords(shardItrToRecordBatch.get(shardIterator))
+					.withMillisBehindLatest(500L)
 					.withNextShardIterator(
 						(Integer.valueOf(shardIterator) == totalNumOfGetRecordsCalls - 1)
 							? null : String.valueOf(Integer.valueOf(shardIterator) + 1)); // last next shard iterator is null
@@ -175,6 +177,7 @@ public class FakeKinesisBehavioursFactory {
 			// assuming that the maxRecordsToGet is always large enough
 			return new GetRecordsResult()
 				.withRecords(shardItrToRecordBatch.get(shardIterator))
+				.withMillisBehindLatest(500L)
 				.withNextShardIterator(
 					(Integer.valueOf(shardIterator) == totalNumOfGetRecordsCalls-1)
 						? null : String.valueOf(Integer.valueOf(shardIterator)+1)); // last next shard iterator is null

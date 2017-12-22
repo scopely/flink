@@ -20,13 +20,15 @@ package org.apache.flink.streaming.connectors.kinesis.internals;
 import com.amazonaws.services.kinesis.model.HashKeyRange;
 import com.amazonaws.services.kinesis.model.SequenceNumberRange;
 import com.amazonaws.services.kinesis.model.Shard;
+
 import org.apache.flink.api.common.functions.RuntimeContext;
+import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.connectors.kinesis.config.ConsumerConfigConstants;
-import org.apache.flink.streaming.connectors.kinesis.model.StreamShardHandle;
 import org.apache.flink.streaming.connectors.kinesis.model.KinesisStreamShardState;
 import org.apache.flink.streaming.connectors.kinesis.model.SentinelSequenceNumber;
 import org.apache.flink.streaming.connectors.kinesis.model.SequenceNumber;
+import org.apache.flink.streaming.connectors.kinesis.model.StreamShardHandle;
 import org.apache.flink.streaming.connectors.kinesis.model.StreamShardMetadata;
 import org.apache.flink.streaming.connectors.kinesis.proxy.GetShardListResult;
 import org.apache.flink.streaming.connectors.kinesis.proxy.KinesisProxy;
@@ -37,10 +39,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -272,7 +273,8 @@ public class KinesisDataFetcher<T> {
 						this,
 						seededStateIndex,
 						subscribedShardsState.get(seededStateIndex).getStreamShardHandle(),
-						subscribedShardsState.get(seededStateIndex).getLastProcessedSequenceNum()));
+						subscribedShardsState.get(seededStateIndex).getLastProcessedSequenceNum(),
+						buildMetricGroupForShard(subscribedShardsState.get(seededStateIndex))));
 			}
 		}
 
@@ -318,7 +320,8 @@ public class KinesisDataFetcher<T> {
 						this,
 						newStateIndex,
 						newShardState.getStreamShardHandle(),
-						newShardState.getLastProcessedSequenceNum()));
+						newShardState.getLastProcessedSequenceNum(),
+						buildMetricGroupForShard(newShardState)));
 			}
 
 			// we also check if we are running here so that we won't start the discovery sleep
@@ -540,6 +543,19 @@ public class KinesisDataFetcher<T> {
 
 			return subscribedShardsState.size()-1;
 		}
+	}
+
+	/**
+	 * Registers a metric group associated with the shard id of the provided {@link KinesisStreamShardState shardState}.
+	 */
+	private MetricGroup buildMetricGroupForShard(KinesisStreamShardState shardState) {
+		MetricGroup kinesis = runtimeContext
+			.getMetricGroup()
+			.addGroup("Kinesis");
+
+		kinesis.getAllVariables().put("<shard_id>", shardState.getStreamShardHandle().getShard().getShardId());
+
+		return kinesis;
 	}
 
 	// ------------------------------------------------------------------------

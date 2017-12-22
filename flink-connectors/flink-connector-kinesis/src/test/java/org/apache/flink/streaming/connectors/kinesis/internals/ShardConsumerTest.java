@@ -19,11 +19,13 @@ package org.apache.flink.streaming.connectors.kinesis.internals;
 
 import com.amazonaws.services.kinesis.model.HashKeyRange;
 import com.amazonaws.services.kinesis.model.Shard;
-import org.apache.commons.lang.StringUtils;
-import org.apache.flink.streaming.connectors.kinesis.model.StreamShardHandle;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.metrics.groups.UnregisteredMetricsGroup;
 import org.apache.flink.streaming.connectors.kinesis.model.KinesisStreamShardState;
 import org.apache.flink.streaming.connectors.kinesis.model.SentinelSequenceNumber;
 import org.apache.flink.streaming.connectors.kinesis.model.SequenceNumber;
+import org.apache.flink.streaming.connectors.kinesis.model.StreamShardHandle;
 import org.apache.flink.streaming.connectors.kinesis.proxy.KinesisProxyInterface;
 import org.apache.flink.streaming.connectors.kinesis.testutils.FakeKinesisBehavioursFactory;
 import org.apache.flink.streaming.connectors.kinesis.testutils.KinesisShardIdGenerator;
@@ -39,6 +41,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertTrue;
 
+/**
+ * Tests for the {@link ShardConsumer}.
+ */
 public class ShardConsumerTest {
 
 	@Test
@@ -73,7 +78,7 @@ public class ShardConsumerTest {
 			0,
 			subscribedShardsStateUnderTest.get(0).getStreamShardHandle(),
 			subscribedShardsStateUnderTest.get(0).getLastProcessedSequenceNum(),
-			FakeKinesisBehavioursFactory.totalNumOfRecordsAfterNumOfGetRecordsCalls(1000, 9)).run();
+			FakeKinesisBehavioursFactory.totalNumOfRecordsAfterNumOfGetRecordsCalls(1000, 9), new UnregisteredMetricsGroup()).run();
 
 		assertTrue(fetcher.getNumOfElementsCollected() == 1000);
 		assertTrue(subscribedShardsStateUnderTest.get(0).getLastProcessedSequenceNum().equals(
@@ -114,7 +119,7 @@ public class ShardConsumerTest {
 			subscribedShardsStateUnderTest.get(0).getLastProcessedSequenceNum(),
 			// Get a total of 1000 records with 9 getRecords() calls,
 			// and the 7th getRecords() call will encounter an unexpected expired shard iterator
-			FakeKinesisBehavioursFactory.totalNumOfRecordsAfterNumOfGetRecordsCallsWithUnexpectedExpiredIterator(1000, 9, 7)).run();
+			FakeKinesisBehavioursFactory.totalNumOfRecordsAfterNumOfGetRecordsCallsWithUnexpectedExpiredIterator(1000, 9, 7), new UnregisteredMetricsGroup()).run();
 
 		assertTrue(fetcher.getNumOfElementsCollected() == 1000);
 		assertTrue(subscribedShardsStateUnderTest.get(0).getLastProcessedSequenceNum().equals(
