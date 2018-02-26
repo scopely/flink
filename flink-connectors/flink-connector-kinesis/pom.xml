@@ -33,8 +33,8 @@ under the License.
 	<artifactId>flink-connector-kinesis_2.10</artifactId>
 	<name>flink-connector-kinesis</name>
 	<properties>
-		<aws.sdk.version>1.10.71</aws.sdk.version>
-		<aws.kinesis-kcl.version>1.6.2</aws.kinesis-kcl.version>
+		<aws.sdk.version>1.11.285</aws.sdk.version>
+		<aws.kinesis-kcl.version>1.9.0</aws.kinesis-kcl.version>
 		<aws.kinesis-kpl.version>0.10.2</aws.kinesis-kpl.version>
 	</properties>
 
@@ -185,6 +185,14 @@ under the License.
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>1.8</source>
+					<target>1.8</target>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
