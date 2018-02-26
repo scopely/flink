@@ -144,6 +144,7 @@ public class KinesisDataFetcher<T> {
 
 	/** The Kinesis proxy that the fetcher will be using to discover new shards */
 	private final KinesisProxyInterface kinesis;
+	private final MetricGroup consumerMetricGroup;
 
 	/** Thread that executed runFetcher() */
 	private volatile Thread mainThread;
@@ -211,6 +212,8 @@ public class KinesisDataFetcher<T> {
 
 		this.shardConsumersExecutor =
 			createShardConsumersThreadPool(runtimeContext.getTaskNameWithSubtasks());
+		this.consumerMetricGroup = runtimeContext.getMetricGroup()
+			.addGroup(KinesisConsumerMetricConstants.KINESIS_CONSUMER_METRICS_GROUP);
 	}
 
 	/**
@@ -274,7 +277,7 @@ public class KinesisDataFetcher<T> {
 						seededStateIndex,
 						subscribedShardsState.get(seededStateIndex).getStreamShardHandle(),
 						subscribedShardsState.get(seededStateIndex).getLastProcessedSequenceNum(),
-						buildMetricGroupForShard(subscribedShardsState.get(seededStateIndex))));
+						registerShardMetrics(consumerMetricGroup, subscribedShardsState.get(seededStateIndex))));
 			}
 		}
 
@@ -321,7 +324,7 @@ public class KinesisDataFetcher<T> {
 						newStateIndex,
 						newShardState.getStreamShardHandle(),
 						newShardState.getLastProcessedSequenceNum(),
-						buildMetricGroupForShard(newShardState)));
+						registerShardMetrics(consumerMetricGroup, newShardState)));
 			}
 
 			// we also check if we are running here so that we won't start the discovery sleep
@@ -547,15 +550,21 @@ public class KinesisDataFetcher<T> {
 
 	/**
 	 * Registers a metric group associated with the shard id of the provided {@link KinesisStreamShardState shardState}.
+	 *
+	 * @return a {@link ShardMetricsReporter} that can be used to update metric values
 	 */
-	private MetricGroup buildMetricGroupForShard(KinesisStreamShardState shardState) {
-		MetricGroup kinesis = runtimeContext
-			.getMetricGroup()
-			.addGroup("Kinesis");
+	private static ShardMetricsReporter registerShardMetrics(MetricGroup metricGroup, KinesisStreamShardState shardState) {
+		ShardMetricsReporter shardMetrics = new ShardMetricsReporter();
 
-		kinesis.getAllVariables().put("<shard_id>", shardState.getStreamShardHandle().getShard().getShardId());
+		MetricGroup streamShardMetricGroup = metricGroup
+			.addGroup(KinesisConsumerMetricConstants.STREAM_METRICS_GROUP)
+			.addGroup(shardState.getStreamShardHandle().getStreamName())
+			.addGroup(KinesisConsumerMetricConstants.SHARD_METRICS_GROUP)
+			.addGroup(shardState.getStreamShardHandle().getShard().getShardId());
 
-		return kinesis;
+		streamShardMetricGroup.gauge(KinesisConsumerMetricConstants.MILLIS_BEHIND_LATEST_GAUGE, shardMetrics::getMillisBehindLatest);
+
+		return shardMetrics;
 	}
 
 	// ------------------------------------------------------------------------
